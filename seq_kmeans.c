@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include "kmeans.h"
 
-__inline static
+//__inline static
 int find_nearest_cluster(int numClusters,int dimension, float *data, float **center)
 {
-    int   index = 0, i;
+    int   index = 0, i, j;
     float min_dist=0.0, distance;
     for(i=0; i<dimension; i++){
         min_dist += (data[i]-center[0][i])*(data[i]-center[0][i]);
@@ -31,7 +31,7 @@ float** seq_kmeans(float **data, int dimension, int numObjs, int numClusters, fl
     int     *clustersize;
     float    delta,**center,**clustersum;
     
-    malloc2D(center, numClusters, dimensions);
+    malloc2D(center, numClusters, dimension);
     
     /* pick first numClusters elements of objects[] as initial cluster centers*/
     for (i=0; i<numClusters; i++)
@@ -39,18 +39,24 @@ float** seq_kmeans(float **data, int dimension, int numObjs, int numClusters, fl
             center[i][j] = data[i][j];
 
     clustersize = (int*) calloc(numClusters, sizeof(int));
-    calloc2D(clustersum, numClusters, dimension);
-    
+    malloc2D(clustersum, numClusters, dimension);
+        for (i=0; i<numClusters; i++){
+        for(j=0; j<dimension; j++){
+             clustersum[i][j] = 0.0;
+        }
+    }
     do {
         delta = 0.0;
         for (i=0; i<numObjs; i++) {
             index = find_nearest_cluster(numClusters, dimension, data[i], center);
-            if(numiteration == 0){
+            if(numiterations == 0){
                 delta = float(numObjs);
                 membership[i] = index;
                 clustersize[index]++;
-                clustersum[index]+ = data[i];
-            }
+                for(j=0; j<dimension; j++){            
+                  clustersum[index][j] += data[i][j];
+                }
+              }
                 
             else if(membership[i] != index){
                 delta +=1.0;

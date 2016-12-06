@@ -12,10 +12,10 @@ void find_nearest_cluster(int dimension,
                           int *newmembership)
 {
     
-    int datatId = blockDim.x * blockIdx.x + threadIdx.x;
+    int dataId = blockDim.x * blockIdx.x + threadIdx.x;
     
-    if (objectId < numObjs) {
-        int   i;
+    if (dataId < numObjs) {
+        int   i,j;
         float distance, min_dist = 0.0;
         
         for(i=0; i<dimension; i++)
@@ -43,7 +43,7 @@ void find_nearest_cluster(int dimension,
 
 float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, float threshold                 , int *membership, int *num_iterations)
 {
-    int      i, j, num_iterations=0;
+    int      i, j, numiterations=0;
     int     *clustersize;
     float    delta, **center, **clustersum;
     float  **datatranspose;
@@ -51,17 +51,17 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
     float *DEVICEdata;
     float *DEVICEcenter;
     int *DEVICEmembership;
-    int *newmembership
+    int *newmembership;
 
     center    = (float**) malloc(numClusters *sizeof(float*));
-    malloc2D(datatranspose, dimension, numObjs, float);
+    malloc2D(datatranspose, dimension, numObjs);
     for (i = 0; i < dimension; i++) {
         for (j = 0; j < numObjs; j++) {
             datatranspose[i][j] = data[j][i];
         }
     }
     
-    malloc2D(centertranspose, dimension, numClusters, float);
+    malloc2D(centertranspose, dimension, numClusters);
     for (i = 0; i < dimension; i++) {
         for (j = 0; j < numClusters; j++) {
             centertranspose[i][j] = datatranspose[i][j];
@@ -69,7 +69,13 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
     }
     
     clustersize = (int*) calloc(numClusters, sizeof(int));
-    calloc2D(clustersum, numClusters, dimension);
+    malloc2D(clustersum, numClusters, dimension);
+    for (i=0; i<numClusters; i++){
+        for(j=0; j<dimension; j++){
+             clustersum[i][j] = 0.0;
+    }
+    }        
+
     newmembership = (int*) calloc(numObjs, sizeof(int));
     
     const unsigned int numThreadsPerClusterBlock = 128;
@@ -93,20 +99,21 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
          DEVICEdata, DEVICEcenter, DEVICEmembership);
         
         cudaDeviceSynchronize();
-        checkLastCudaError();
         
         delta=0.0;
         
         cudaMemcpy(newmembership, DEVICEmembership,
-                   numObjs*sizeof(int), cudaMemcpyDeviceToHost)
+                   numObjs*sizeof(int), cudaMemcpyDeviceToHost);
         
         for(i=0; i<numObjs; i++)
         {
-            if(numiteration == 0){
+            if(numiterations == 0){
                 delta =float(numObjs);
                 membership[i]=newmembership[i];
                 clustersize[membership[i]]++;
-                clustersum[membership[i]] += data[i];
+                 for(j=0; j<dimension; j++){
+                clustersum[membership[i]][j] += data[i][j];
+              }
             }
             
             else if(membership[i] != newmembership[i]){
@@ -114,7 +121,7 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
                 clustersize[newmembership[i]] ++;
                 clustersize[membership[i]] --;
                 for(j=0; j<dimension; j++){
-                    clustersum[newmembership][j] -= data[i][j];
+                    clustersum[newmembership[i]][j] -= data[i][j];
                     clustersum[membership[i]][j] -= data[i][j];
                 }
                 membership[i] = newmembership[i];
@@ -136,7 +143,7 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
     
     for (i = 0; i < numClusters; i++) {
         for (j = 0; j < dimension; j++) {
-            clusters[i][j] = clustertranspose[j][i];
+            center[i][j] = centertranspose[j][i];
         }
     }
     
@@ -151,6 +158,6 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
     free(clustersum[0]);
     free(clustersum);
     free(clustersize);
-    free(newmembership)
+    free(newmembership);
     return center;
 }

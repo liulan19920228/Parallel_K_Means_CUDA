@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include "seq_kmeans.c"
 #include "kmeans.h"
-
+//#include "cuda_kmeans.cu"
+//#include "timer.cu"
 void random_data(float ** array, int m, int n) {
     for(int i=0; i<m ; i++) {
         for(int j=0; j<n; j++){
@@ -13,7 +14,7 @@ void random_data(float ** array, int m, int n) {
 
 int main()
 {
-    int     K = 128, D = 1000, N = 12800;
+    int     K = 4, D = 1000, N = 5000;
     float   threshold = 0.001;
     int    *membership;
     float **data;
@@ -26,7 +27,7 @@ int main()
     printf("numClusters   = %d\n", K);
     printf("threshold     = %.4f\n", threshold);
     
-    malloc2D(data, N,D, float);
+    malloc2D(data, N,D);
     random_data(data, N, D);
     membership = (int*) malloc(N * sizeof(int));
     
@@ -44,7 +45,7 @@ int main()
     membership = (int*) malloc(N * sizeof(int));
     timing      = wtime();
     cuda_timing = timing;
-    clusters = cuda_kmeans(data, D, N, K, threshold,membership, &num_iterations);
+//    center = cuda_kmeans(data, D, N, K, threshold,membership, &num_iterations);
     timing      = wtime();
     cuda_timing = timing - cuda_timing;
     

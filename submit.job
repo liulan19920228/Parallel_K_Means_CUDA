@@ -6,5 +6,5 @@
 #SBATCH --job-name="cuda-demo"
 #SBATCH --output="gpucuda%j.%N.out"
 #SBATCH -t 03:30:00
-#cd ~/lanliu/CS240Fall16/Finalproject
-./main.cu
+#cd ~/home/lanliu/KMeans
+./main
