@@ -69,7 +69,7 @@ float** seq_kmeans(float **data, int dimension, int numObjs, int numClusters, fl
                 membership[i] = index;
             }
         }
-
+    //  printf("%.4f",delta);
         /* average the sum to compute new cluster centers*/
         for (i=0; i<numClusters; i++) {
             for (j=0; j<dimension; j++) {
@@ -78,7 +78,7 @@ float** seq_kmeans(float **data, int dimension, int numObjs, int numClusters, fl
             }
         }
         delta /= numObjs;
-    } while (delta > threshold && numiterations++ < 500); /* Max number of iteration is 500 */
+    } while (delta > threshold && numiterations++ < 30); /* Max number of iteration is 500 */
     
     *num_iterations = numiterations + 1;
     free(clustersum[0]);

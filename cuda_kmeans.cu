@@ -22,6 +22,7 @@ void find_nearest_cluster(int dimension,
         {
             min_dist +=(data[numObjs * i + dataId] - DEVICEcenter[numClusters * i]) *
             (data[numObjs * i + dataId] - DEVICEcenter[numClusters * i]);
+        newmembership[dataId]=0;
         }
             
         for (j=1; j<numClusters; j++) {
@@ -33,7 +34,7 @@ void find_nearest_cluster(int dimension,
             }
             if (distance < min_dist) {
                 min_dist = distance;
-                newmembership[dataId] = i;
+                newmembership[dataId] = j;
             }
         }
     
@@ -53,7 +54,8 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
     int *DEVICEmembership;
     int *newmembership;
 
-    center    = (float**) malloc(numClusters *sizeof(float*));
+    //center    = (float**) malloc(numClusters *sizeof(float*));
+    malloc2D(center,numClusters,dimension);
     malloc2D(datatranspose, dimension, numObjs);
     for (i = 0; i < dimension; i++) {
         for (j = 0; j < numObjs; j++) {
@@ -86,12 +88,11 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
     cudaMalloc(&DEVICEmembership, numObjs*sizeof(int));
     cudaMemcpy(DEVICEdata, datatranspose[0],
                          numObjs*dimension*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(DEVICEmembership, membership,
-                         numObjs*sizeof(int), cudaMemcpyHostToDevice);
+    //cudaMemcpy(DEVICEmembership, membership,
+    //                     numObjs*sizeof(int), cudaMemcpyHostToDevice);
     
     do {
-        cudaMemcpy(DEVICEcenter, centertranspose[0],
-                             numClusters*dimension*sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(DEVICEcenter, centertranspose[0],numClusters*dimension*sizeof(float), cudaMemcpyHostToDevice);
         
         find_nearest_cluster
         <<< numClusterBlocks, numThreadsPerClusterBlock>>>
@@ -100,11 +101,9 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
         
         cudaDeviceSynchronize();
         
-        delta=0.0;
+        cudaMemcpy(newmembership, DEVICEmembership, numObjs*sizeof(int), cudaMemcpyDeviceToHost);
         
-        cudaMemcpy(newmembership, DEVICEmembership,
-                   numObjs*sizeof(int), cudaMemcpyDeviceToHost);
-        
+        delta = 0.0;
         for(i=0; i<numObjs; i++)
         {
             if(numiterations == 0){
@@ -121,14 +120,15 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
                 clustersize[newmembership[i]] ++;
                 clustersize[membership[i]] --;
                 for(j=0; j<dimension; j++){
-                    clustersum[newmembership[i]][j] -= data[i][j];
+                    clustersum[newmembership[i]][j] += data[i][j];
                     clustersum[membership[i]][j] -= data[i][j];
                 }
                 membership[i] = newmembership[i];
             }
         }
         
-        
+    //   for(numiterations=1;numiterations<10;numiterations++)
+    //  printf("%.4f\n",delta);
         /* average the sum to compute new cluster centers*/
         for (i=0; i<numClusters; i++) {
             for (j=0; j<dimension; j++) {
@@ -137,7 +137,7 @@ float** cuda_kmeans(float **data, int dimension, int numObjs, int numClusters, f
             }
         }        
         delta /= numObjs;
-    } while (delta > threshold && numiterations++ < 500);//Max number of iteration
+    } while (delta > threshold && numiterations++ < 30);//Max number of iteration
     
     *num_iterations = numiterations + 1;
     

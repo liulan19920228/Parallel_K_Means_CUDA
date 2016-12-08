@@ -14,7 +14,7 @@ void random_data(float ** array, int m, int n) {
 
 int main()
 {
-    int     K = 4, D = 1000, N = 5000;
+    int     K = 64, D = 1000, N = 51200;
     float   threshold = 0.001;
     int    *membership;
     float **data;
@@ -28,6 +28,7 @@ int main()
     printf("threshold     = %.4f\n", threshold);
     
     malloc2D(data, N,D);
+    malloc2D(center,K,D);
     random_data(data, N, D);
     membership = (int*) malloc(N * sizeof(int));
     
@@ -35,23 +36,24 @@ int main()
     sequential_timing = timing;
     
     /* start the timer for the core computation -----------------------------*/
-    /*clusters = seq_kmeans(data, dimension, numObjs, numClusters, threshold,membership, &num_iterations);
+    center = seq_kmeans(data, D, N, K, threshold,membership, &num_iterations);
     timing            = wtime();
     sequential_timing = timing - sequential_timing;
     printf("Seq Computation timing = %10.4f sec\n", sequential_timing);
-    printf("Loop iterations    = %d\n", num_iterations);*/
+    printf("Loop iterations    = %d\n", num_iterations);
     
-    free(membership);
-    membership = (int*) malloc(N * sizeof(int));
+    //free(membership);
+    //membership = (int*) malloc(N * sizeof(int));
+    num_iterations=0;
     timing      = wtime();
     cuda_timing = timing;
-//    center = cuda_kmeans(data, D, N, K, threshold,membership, &num_iterations);
+    center = cuda_kmeans(data, D, N, K, threshold,membership, &num_iterations);
     timing      = wtime();
     cuda_timing = timing - cuda_timing;
     
     printf("Cuda Computation timing = %10.4f sec\n", cuda_timing);
     printf("Loop iterations    = %d\n", num_iterations);
-    //printf("speed up = %.4f\n", sequantial_timing/cuda_timing);
+    printf("speed up = %.4f\n", sequential_timing/cuda_timing);
     
     free(membership);
     free(center[0]);
